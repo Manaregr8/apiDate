@@ -1,5 +1,4 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import JSONResponse
+from flask import Flask, request, jsonify
 import cv2
 import numpy as np
 import os
@@ -7,13 +6,11 @@ import re
 from paddleocr import PaddleOCR
 from datetime import datetime
 from ultralytics import YOLO
-import os
-import uvicorn
 
-app = FastAPI()
+app = Flask(__name__)
 
 # Initialize the OCR model
-ocr = PaddleOCR(use_angle_cls=True, lang='en')  # You can specify other languages too
+ocr = PaddleOCR(use_angle_cls=True, lang='en')  # Specify other languages if required
 
 # Initialize YOLO model for text region detection
 model = YOLO("./best.pt")
@@ -130,22 +127,22 @@ def process_image(image_path):
         }
     return {"error": "No valid dates detected"}
 
-@app.post("/process-image")
-async def upload_image(file: UploadFile = File(...)):
+@app.route("/process-image", methods=["POST"])
+def upload_image():
     try:
+        file = request.files["file"]
         temp_file = f"temp_{file.filename}"
-        with open(temp_file, "wb") as f:
-            f.write(await file.read())
+        file.save(temp_file)
 
         result = process_image(temp_file)
         os.remove(temp_file)  # Clean up temp file
 
-        return JSONResponse(content=result)
+        return jsonify(result)
     except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        return jsonify({"error": str(e)}), 500
 
 # This part ensures that the app listens on the correct host and port in cloud environments like Render
-if __name__ == '__main__':
-    host = "0.0.0.0"  # Bind to all IP addresses
-    port = int(os.environ.get("PORT", 8000))  # Default to port 8000 if not specified by the environment
-    uvicorn.run(app, host=host, port=port)
+if __name__ == "__main__":
+    host = "0.0.0.0"
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host=host, port=port)
