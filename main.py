@@ -144,5 +144,5 @@ def upload_image():
 # This part ensures that the app listens on the correct host and port in cloud environments like Render
 if __name__ == "__main__":
     host = "0.0.0.0"
-    port = int(os.environ.get("PORT", 5000))
+    port = 5000
     app.run(host=host, port=port)
